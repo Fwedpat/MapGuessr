@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MapGuessr</title>
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/favicon.jpeg') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+
+        .map-container {
+            position: fixed;
+            bottom: 190px;
+            right: 20px;
+            width: 300px;
+            height: 200px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: width 0.3s ease, height 0.3s ease;
+        }
+
+        .guess-bar{
+            position: fixed;
+            bottom: 50px;
+            right: 20px;
+            width: 300px;
+            height: 200px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: width 0.3s ease, height 0.3s ease;
+        }
+
+        /* Enlarged size on hover */
+        .map-container:hover {
+            width: 600px;
+            height: 400px;
+        }
+
+        
+        .image-container {
+            border-radius: 10px;
+            margin-left: 0.2rem;
+            margin-top: 0.2rem;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            opacity: 1.0;
+            background-color: rgba(var(--bs-dark-rgb), var(--bs-bg-opacity)) !important;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            cursor: grab;
+            border-radius: 10px;
+        }
+
+    </style> 
+</head>
+
+<body style="background-color: #FCF7E4; margin: 0; padding: 1rem; height: 100vh; box-sizing: border-box;">
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark" style="opacity: 0.8; border-radius: 10px; margin-bottom: 1rem;">
+        <a class="navbar-brand" href="#" style="margin-left: 1rem; font-family: 'Rubik'; font-size: 1.4rem; font-weight: bolder; color: #CC1E1E;" onclick="returnToHomepage()">MapGuessr</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav"     aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item active">
+                    <a class="nav-link" href="#" style="margin-left: 2rem; font-family: 'Rubik';">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" style="font-family: 'Rubik'">Leaderboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" style="font-family: 'Rubik'">Profile</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <!-- Main Game Area -->
+    <div class="container mt-8">
+        <div class="row" style="height: fit-content;">
+            <div>
+                <div id="game-map">
+                    <div class="image-container" style="margin-bottom: 4px;">
+                        <img id="gameImage" style="max-height: 80vh; width: auto;">
+                    </div>
+                    <!-- Wheelzoom Library -->
+                    <script src="https://cdn.jsdelivr.net/npm/wheelzoom@4.0.1/wheelzoom.min.js"></script>
+                
+                    <script src="https://cdn.jsdelivr.net/npm/wheelzoom@4.0.1/wheelzoom.min.js"></script>
+
+                    <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        fetch('/levelDetails')
+                            .then(response => response.json())
+                            .then(data => {
+                                // Store fetched details in localStorage (optional)
+                                localStorage.setItem('year', data[0]);
+                                localStorage.setItem('long', data[1]);
+                                localStorage.setItem('lat', data[2]);
+                                localStorage.setItem('description', data[3]);
+                                localStorage.setItem('min_lat', data[4]);
+                                localStorage.setItem('max_lat', data[5]);
+                                localStorage.setItem('min_long', data[6]);
+                                localStorage.setItem('max_long', data[7]);
+                                localStorage.setItem('level_name', data[8]);
+                    
+                                // Construct the image URL using level_name
+                                const levelName = data[8];
+                                const imageUrl = `/static/levels/${levelName}/${levelName}.jpg`;
+                    
+                                // Set the image URL dynamically
+                                const image = document.getElementById('gameImage');
+                                image.src = imageUrl;
+                    
+                                // Initialize Wheelzoom on the dynamically loaded image
+                                wheelzoom(image, { zoom: 0.1 }); // Optional: Adjust the zoom sensitivity with the `zoom` option
+                            })
+                            .catch(error => {
+                                console.error('Error fetching level details:', error);
+                            });
+                    });
+                    </script>
+                </div>
+            </div>
+        </div>
+            <span style="font-size: larger; margin-top: 20px; color: rgb(61, 61, 61);">© 2024 MapGuessr</span>
+    </div>
+    </body>
+
+            <div class="col-md-6" style="position: fixed; bottom: 20px; left: 15px; width: 300px; height: 140px; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2); border-radius: 10px;">
+                <div class="card bg-dark" style="border-radius: 10px; opacity: 0.8;">
+                    <div class="card-body">
+                        <h5 class="card-title text-white" style="font-family: 'Rubik'">Score:</h5>
+                        <p class="card-text text-white"><span id="score">0</span></p>
+                        <button class="btn btn-primary" id="guess-button" style="font-family: 'Rubik'" onclick="guess()">Make a Guess</button>
+                    </div>
+                </div>
+            </div>
+<!-- Footer -->
+<div id="map" class="map-container"></div>
+
+<div class="card bg-dark" style="border-radius: 10px; opacity: 0.8; position: fixed; bottom: 20px; right: 20px; width: 300px; height: 120px; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2); border-radius: 10px; overflow: hidden; transition: width 0.3s ease, height 0.3s ease;">
+    <div class="card-body">
+        <h5 class="card-title text-white" style="font-family: 'Rubik'">Guess the Year</h5>
+        <input type="range" class="form-range" min="1250" max="2024" step="1" id="year-slider" oninput="updateSelectedYear(this.value)">
+        <p class="card-text text-white" style="font-family: 'Rubik'">Selected Year: <span id="selected-year">1750</span></p>
+    </div>
+</div>
+
+    <!-- Leaflet Map dependency -->
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+</body>
+</html>
