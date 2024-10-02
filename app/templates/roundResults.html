@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MapGuessr</title>
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/favicon.jpeg') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+</head>
+<style>
+    body, html {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        overflow: hidden; /* Prevent any scrolling */
+    }
+
+    .description-text {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #ffffff;
+        font-family: Khand, sans-serif;
+    }
+
+    /* Flex container holding both the map and the right-hand container */
+    .game-container {
+        display: flex;
+        height: calc(100vh - 100px); /* Adjust this value according to actual navbar height */
+        padding: 25px; /* Changed from margin to padding */
+        gap: 25px; /* Optional: space between the two containers */
+        box-sizing: border-box; /* Include padding in height calculations */
+    }
+
+    .map-container {
+        flex: 1; /* Map container will take up remaining space */
+        height: 98%;
+        border-radius: 15px;
+        overflow: hidden;
+        transition: width 0.3s ease, height 0.3s ease;
+    }
+
+    .right-hand-container {
+        width: 40%; /* You can adjust this width as needed */
+        border-radius: 10px;
+        overflow: hidden;
+        transition: width 0.3s ease, height 0.3s ease;
+    }
+
+    /* Adjust the bottom button container */
+    .bottom-button-container {
+        position: absolute;
+        bottom: 20px; /* Adjusted the position */
+        right: 20px;
+    }
+
+    .well-styled-text {
+        background-color: rgba(0, 0, 0, 0.8);
+        border-radius: 10px;
+        padding: 10px;
+        margin-left: auto;
+        margin-right: auto;
+        font-family: 'Rubik', sans-serif;
+        font-weight: 800;
+        font-size: 80px; /* Increased font size */
+        margin-top: 2rem;
+        margin-bottom: 4rem;
+        margin-right: 2rem;
+        margin-left: 2rem;
+        text-align: center;
+    }
+</style>
+
+<body style="background-color: #FCF7E4;">
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark" style="background-color: rgba(0, 0, 0, 0.8); border-radius: 10px; margin-top: 1rem; margin-left: 1rem; margin-right: 1rem; margin-bottom: 0.5rem;">
+        <a class="navbar-brand" href="#" style="margin-left: 1rem; font-size: 1.4rem ;font-weight: bolder; font-family: 'Rubik'; color: #CC1E1E;" onclick="returnToHomepage()">MapGuessr</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item active">
+                    <a class="nav-link" href="#" style="margin-left: 2rem; font-family: 'Rubik'; color: white;">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" style="font-family: 'Rubik'; color: white;">Leaderboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" style="font-family: 'Rubik'; color: white;">Profile</a>
+                </li>
+                <li class="nav-item ml-auto">
+                    <a class="nav-link" href="https://github.com" style="font-family: 'Rubik'; color: white;">
+                        <svg class="bi" width="16" height="16" fill="currentColor">
+                            <use xlink:href="bootstrap-icons/bootstrap-icons.svg#github"/>
+                        </svg>
+                    </a>
+                </li>
+                <li class="nav-item ml-auto">
+                    <a class="nav-link" href="https://x.com/Fwedpeng" style="font-family: 'Rubik'; color: white;">
+                        <svg class="bi" width="16" height="16" fill="currentColor">
+                            <use xlink:href="bootstrap-icons/bootstrap-icons.svg#twitter"/>
+                        </svg>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    
+    <!-- Main Game Area wrapped in a flexbox container -->
+    <div class="game-container">
+        <div id="map" class="map-container"></div>
+        <div id="right" class="right-hand-container" style="overflow-y: scroll; margin-bottom: 2rem;">
+            <div id="roundDescription">
+            <div class="well-styled-text">
+                <!-- The description of the given round map/context will be inserted here -->
+                <h1 class="description-text" id="description" style="margin: 10px;"></h1>
+            </div>
+            <img style="width:60%; height: 60%; display: block; margin-left: auto; margin-right: auto;" id="mapImage">
+            </div>
+            <div id="gameDetails" style="margin-top: 30px; max-height: 400px;">
+            <div class="card-body"></div>
+            <h1 style="margin-bottom: 25px; font-family: 'Rubik', sans-serif; font-weight: 800; font-size: 48px; color: #701a00; margin-left: 2rem;">Round Details</h2>
+            <div class="card bg-dark" style="margin-top: 15px; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.4); border-radius: 15px; margin-right: calc(50% - 10px); margin-left: 2rem; width: calc(100% - 4rem);">
+                <div class="card-body">
+                <h2 class="text-white" style="font-family: 'Rubik';">Round Score <span id="roundNumber"></span></h2>
+                </div>
+            </div>
+            <div class="card bg-dark" style="margin-top: 15px; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.4); border-radius: 15px; margin-right: calc(50% - 10px); margin-left: 2rem; width: calc(100% - 4rem);">
+                <div class="card-body">
+                <h2 class="text-white" style="font-family: 'Rubik';">Total Score <span id="score"></span></h2>
+                </div>
+            </div>
+            <div class="card bg-dark" style="margin-top: 15px; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.4); border-radius: 15px; margin-right: calc(50% - 10px); margin-left: 2rem; width: calc(100% - 4rem);">
+                <div class="card-body">
+                <h2 class="text-white" style="font-family: 'Rubik';">Distance Away <span id="distance"></span></h2>
+                </div>
+            </div>
+            <div class="card bg-dark" style="margin-top: 15px; margin-bottom: 3rem; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.4); border-radius: 15px; margin-right: calc(50% - 10px); margin-left: 2rem; width: calc(100% - 4rem);">
+                <div class="card-body">
+                <h2 class="text-white" style="font-family: 'Rubik';">The year was <span id="year"></span></h2>
+                </div>
+            </div>
+            <div style="position: absolute; bottom: 20px; right: 20px;">
+                <style>
+                .button {
+                    position: relative;
+                    padding: 24px 64px;
+                    border-radius: 15px;
+                    background-color: #ffcccc;
+                    font-family: 'Playfair Display', serif;
+                    color: #000000;
+                    overflow: hidden;
+                    cursor: pointer;
+                    transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+                    -webkit-mask-image: -webkit-radial-gradient(white, black);
+                    mask-image: radial-gradient(white, black);
+                }
+
+                .button-text {
+                    position: relative;
+                    z-index: 2;
+                }
+
+                </style>
+                <button class="button">
+                <span class="button-text" onclick="next_round()" style="font-family: 'Rubik'; font-weight: 800;">Next Round...</span>
+                <div class="fill-container"></div>
+                </button>
+            </div>
+            </div>
+        </div>
+
+
+    <script>
+        fetch('/getRoundDetails')
+        .then(response => response.json())
+        .then(data => {
+            // Process the data here
+            var year = data.year;
+            var long = data.long;
+            var lat = data.lat;
+            var description = data.description;
+            var min_lat = data.min_lat;
+            var max_lat = data.max_lat;
+            var min_long = data.min_long;
+            var max_long = data.max_long;
+            var distance = data.distance;
+            var selectedYear = data.selectedYear;
+            var pinLat = data.pinLat;
+            var pinLong = data.pinLong;
+            var level_name = data.level_name;
+
+            console.log(data);
+            
+            
+
+            document.getElementById('year').innerHTML = year + '!';
+            document.getElementById('distance').innerHTML = (data.distance).toFixed(2) + ' km';
+            // Calculate the score based on the distance
+            var distance = data.distance;
+            var maxScore = 5000;
+            var score = 0;
+
+            if (distance <= 50) {
+                score = maxScore;
+            } else if (distance <= 100) {
+                score = maxScore - (distance - 50) * 20;
+            } else if (distance <= 200) {
+                score = maxScore - (50 * 20) - (distance - 100) * 15;
+            } else if (distance <= 300) {
+                score = maxScore - (50 * 20) - (100 * 15) - (distance - 200) * 10;
+            } else {
+                score = maxScore - (50 * 20) - (100 * 15) - (100 * 10) - (distance - 300) * 5;
+            }
+
+            // Ensure the score is not negative
+            score = Math.max(score, 0);
+
+            // Round the score to a whole number
+            score = Math.round(score);
+
+            // Update the HTML element with the score
+            document.getElementById('score').innerHTML = score;
+            
+            // Update the HTML elements with the data   
+            document.getElementById('description').innerHTML = description;
+
+            // Use the data to update the map or perform any other necessary operations
+            var map = L.map('map').setView([long, lat], 14);
+
+            // Set up the OpenStreetMap layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            var imageUrl = `/static/levels/${level_name}/${level_name}.jpg`;
+            var errorOverlayUrl = 'https://cdn-icons-png.flaticon.com/512/110/110686.png';
+            var altText = 'Image of Newark, N.J. in 1922. Source: The University of Texas at Austin, UT Libraries Map Collection.';
+            var latLngBounds = L.latLngBounds([[min_lat, max_lat], [min_long, max_long]]);
+            document.getElementById('mapImage').src = imageUrl;  
+            var imageOverlay = L.imageOverlay(imageUrl, latLngBounds, {
+                opacity: 1.0,
+                errorOverlayUrl: errorOverlayUrl,
+                alt: altText,
+                interactive: true
+            }).addTo(map);
+
+            // Add a marker for the selected location  
+            var userMarker = L.marker([pinLat, pinLong]).addTo(map);
+
+            // Add a market to the correct location
+            var correctMarker = L.marker([long, lat]).addTo(map);   
+
+            // Draw a polyline between the two markers
+            var polyline = L.polyline([userMarker.getLatLng(), correctMarker.getLatLng()], {color: '#325ea8', dashArray: '5, 5'}).addTo(map);
+
+
+            // Handle resizing of the map on hover
+            var mapContainer = document.getElementById('map');
+
+            mapContainer.addEventListener('mouseenter', function() {
+                setTimeout(function() {
+                    map.invalidateSize();
+                }, 300); // Wait for the CSS transition to finish before invalidating the size
+            });
+
+            mapContainer.addEventListener('mouseleave', function() {
+                setTimeout(function() {
+                    map.invalidateSize();
+                }, 300); // Recalculate the size again when the map returns to its original size
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    </script>
+
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/interRound.js') }}"></script>
+</body>
+</html>
+
+
